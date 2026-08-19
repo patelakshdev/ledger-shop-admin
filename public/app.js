@@ -121,7 +121,7 @@ async function enterApp() {
   document.getElementById("adminRole").textContent = ROLE_LABEL[u.role] || u.role;
   document.getElementById("adminAvatar").textContent = (u.fullName || u.username || "A").charAt(0).toUpperCase();
   document.getElementById("brandTenant").textContent = u.role === "super_admin" ? "Platform" : (u.tenantName || "Shop Admin");
-  document.getElementById("footStoreName").textContent = u.role === "super_admin" ? "Ledger Platform" : (u.tenantName || "Shop");
+  document.getElementById("footStoreName").textContent = u.role === "super_admin" ? "StoreFlow Platform" : (u.tenantName || "Shop");
   document.getElementById("receiptStoreName").textContent = u.tenantName || "Shop";
 
   // Role-based navigation

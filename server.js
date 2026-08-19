@@ -69,7 +69,7 @@ const isDirectRun =
 
 if (isDirectRun) {
   app.listen(config.port, () => {
-    console.log(`\n  Ledger multi-tenant platform running`);
+    console.log(`\n  StoreFlow multi-tenant platform running`);
     console.log(`  ➜ http://localhost:${config.port}`);
     console.log(`  ➜ API health: http://localhost:${config.port}/api/health\n`);
   });
