@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger &mdash; Multi-tenant Shop Admin</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Tailwind (utility layout) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Bootstrap (modal / dropdown / toast behavior) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="app-body">
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-mark"><span class="login-mark-glyph">&#167;</span></div>
+    <p class="eyebrow">Multi-tenant Shop Platform</p>
+    <h1 class="login-title">Ledger</h1>
+    <p class="login-sub">POS, stock, suppliers, payments &amp; tenant control.</p>
+
+    <form id="loginForm" class="mt-8">
+      <label class="field-label">Username</label>
+      <input id="loginUser" type="text" class="field-input" placeholder="username" value="corneradmin" required>
+      <label class="field-label mt-4">Password</label>
+      <input id="loginPass" type="password" class="field-input" placeholder="password" value="TenantAdmin@123" required>
+      <p id="loginError" class="login-error d-none">Invalid username or password.</p>
+      <button type="submit" class="btn-brass w-100 mt-4" id="loginBtn">Sign in</button>
+      <p class="login-hint">Demo tenant admin &mdash; corneradmin / TenantAdmin@123</p>
+    </form>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="appShell" class="app-shell d-none">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-glyph">&#167;</span>
+      <div>
+        <div class="brand-name">Ledger</div>
+        <div class="brand-sub" id="brandTenant">Shop Admin</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav">
+      <button class="nav-item active" data-page="dashboard"><span class="nav-icon">&#9670;</span> Dashboard</button>
+      <button class="nav-item" data-page="billing" data-role="tenant"><span class="nav-icon">&#8776;</span> Billing / Sell</button>
+      <button class="nav-item" data-page="products" data-role="tenant"><span class="nav-icon">&#9633;</span> Products</button>
+      <button class="nav-item" data-page="inventory" data-role="tenant"><span class="nav-icon">&#9776;</span> Inventory</button>
+      <button class="nav-item" data-page="suppliers" data-role="tenant"><span class="nav-icon">&#8635;</span> Suppliers</button>
+      <button class="nav-item" data-page="customers" data-role="tenant"><span class="nav-icon">&#9679;</span> Customers</button>
+      <button class="nav-item" data-page="invoices" data-role="tenant"><span class="nav-icon">&#8801;</span> Invoices</button>
+      <button class="nav-item" data-page="payments" data-role="tenant"><span class="nav-icon">&#8377;</span> Payments</button>
+      <button class="nav-item" data-page="employees" data-role="tenantadmin"><span class="nav-icon">&#9786;</span> Employees</button>
+      <button class="nav-item" data-page="tenants" data-role="super"><span class="nav-icon">&#8862;</span> Tenants</button>
+      <button class="nav-item" data-page="audit" data-role="all"><span class="nav-icon">&#9998;</span> Audit log</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="foot-store" id="footStoreName">Ledger Platform</div>
+      <button id="logoutBtn" class="foot-logout">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h2 id="pageTitle">Dashboard</h2>
+        <p id="pageSubtitle" class="page-subtitle"></p>
+      </div>
+
+      <div class="global-search" id="globalSearchWrap">
+        <span class="gs-icon">&#8981;</span>
+        <input id="globalSearch" type="text" placeholder="Search products, customers, suppliers, invoices&hellip;" autocomplete="off">
+        <div id="globalSearchResults" class="gs-results d-none"></div>
+      </div>
+
+      <div class="topbar-admin">
+        <div class="admin-avatar" id="adminAvatar">A</div>
+        <div>
+          <div class="admin-name" id="adminName">Admin</div>
+          <div class="admin-role" id="adminRole">Role</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content-area" id="contentArea">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section id="page-dashboard" class="page">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Products tracked</div>
+            <div class="stat-value" id="statProducts">0</div>
+            <div class="stat-foot">SKUs across all categories</div>
+          </div>
+          <div class="stat-card accent-brass">
+            <div class="stat-label">Today's sales</div>
+            <div class="stat-value" id="statTodaySales">&#8377;0</div>
+            <div class="stat-foot" id="statTodayCount">0 invoices raised</div>
+          </div>
+          <div class="stat-card accent-rust">
+            <div class="stat-label">Low stock alerts</div>
+            <div class="stat-value" id="statLowStock">0</div>
+            <div class="stat-foot">At or below reorder level</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-label">Customers</div>
+            <div class="stat-value" id="statCustomers">0</div>
+            <div class="stat-foot">On record</div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Recent invoices</h3>
+              <button class="link-btn" data-page="invoices">View all &rarr;</button>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Invoice</th><th>Customer</th><th>Items</th><th>Total</th><th>Date</th></tr></thead>
+              <tbody id="dashRecentInvoices"></tbody>
+            </table>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Reorder soon</h3>
+              <button class="link-btn" data-page="inventory">View inventory &rarr;</button>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Product</th><th>Stock</th><th>Reorder at</th></tr></thead>
+              <tbody id="dashLowStock"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel mt-4">
+          <div class="panel-head">
+            <h3>Outstanding / credit balance</h3>
+            <button class="link-btn" data-page="payments">Record payments &rarr;</button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead>
+              <tbody id="dashOutstanding"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PLATFORM DASHBOARD (super admin) ===== -->
+      <section id="page-platform" class="page d-none">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Active tenants</div>
+            <div class="stat-value" id="pTenants">0</div>
+            <div class="stat-foot">Live shops on the platform</div>
+          </div>
+          <div class="stat-card accent-brass">
+            <div class="stat-label">Platform revenue</div>
+            <div class="stat-value" id="pRevenue">&#8377;0</div>
+            <div class="stat-foot">Billed across all tenants</div>
+          </div>
+          <div class="stat-card accent-rust">
+            <div class="stat-label">Suspended tenants</div>
+            <div class="stat-value" id="pSuspended">0</div>
+            <div class="stat-foot">Revoked access</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-label">Total users</div>
+            <div class="stat-value" id="pUsers">0</div>
+            <div class="stat-foot">Across the platform</div>
+          </div>
+        </div>
+
+        <div class="panel mt-4">
+          <div class="panel-head">
+            <h3>Tenant overview</h3>
+            <button class="link-btn" data-page="tenants">Manage tenants &rarr;</button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Tenant</th><th>Status</th><th>Plan</th><th>Users</th><th>Invoices</th><th>Revenue</th><th>Created</th></tr></thead>
+              <tbody id="pTenantsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== BILLING / SELL (POS) ===== -->
+      <section id="page-billing" class="page d-none">
+        <div class="pos-grid">
+          <div class="panel pos-catalog">
+            <div class="panel-head">
+              <h3>Catalog</h3>
+              <input id="posSearch" type="text" class="pos-search-input" placeholder="Filter products to sell&hellip;">
+            </div>
+            <div id="posProductGrid" class="pos-product-grid"></div>
+          </div>
+
+          <div class="receipt-wrap">
+            <div class="receipt">
+              <div class="receipt-head">
+                <div class="receipt-store" id="receiptStoreName">Shop</div>
+                <div class="receipt-tagline">Sale Ticket</div>
+              </div>
+
+              <div class="receipt-field">
+                <label>Customer</label>
+                <select id="posCustomerSelect" class="receipt-select"><option value="">Walk-in customer</option></select>
+              </div>
+              <div class="receipt-divider"></div>
+              <div id="posCartLines" class="receipt-lines"><p class="receipt-empty">No items yet &mdash; tap a product to add it.</p></div>
+              <div class="receipt-divider"></div>
+
+              <div class="receipt-row"><span>Subtotal</span><span id="posSubtotal">&#8377;0.00</span></div>
+              <div class="receipt-row"><span>Discount</span><span class="receipt-input-inline"><input id="posDiscount" type="number" min="0" value="0">%</span></div>
+              <div class="receipt-row"><span>Tax (GST)</span><span class="receipt-input-inline"><input id="posTax" type="number" min="0" value="5">%</span></div>
+              <div class="receipt-row receipt-total"><span>Total due</span><span id="posTotal">&#8377;0.00</span></div>
+
+              <div class="receipt-field mt-2">
+                <label>Payment method</label>
+                <select id="posPayment" class="receipt-select">
+                  <option>Cash</option>
+                  <option>UPI</option>
+                  <option>Card</option>
+                  <option>Credit / Ledger</option>
+                </select>
+              </div>
+
+              <button id="posCharge" class="btn-brass w-100 mt-3">Complete sale &amp; print</button>
+              <button id="posClear" class="btn-ghost w-100 mt-2">Clear ticket</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PRODUCTS ===== -->
+      <section id="page-products" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Product details</h3>
+            <div class="d-flex gap-2">
+              <input id="productFilter" type="text" class="table-filter" placeholder="Filter products&hellip;">
+              <button class="btn-brass btn-sm" id="addProductBtn">+ Add product</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>SKU</th><th>Product</th><th>Category</th><th>Cost</th><th>Sell price</th><th>Stock</th><th>Supplier</th><th></th></tr></thead>
+              <tbody id="productsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== INVENTORY ===== -->
+      <section id="page-inventory" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Stock check</h3>
+            <input id="inventoryFilter" type="text" class="table-filter" placeholder="Filter inventory&hellip;">
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>SKU</th><th>Product</th><th>In stock</th><th>Reorder level</th><th>Status</th><th>Adjust</th></tr></thead>
+              <tbody id="inventoryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel mt-4">
+          <div class="panel-head"><h3>Stock movement log</h3></div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Product</th><th>Change</th><th>Reason</th></tr></thead>
+              <tbody id="inventoryLogBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SUPPLIERS ===== -->
+      <section id="page-suppliers" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Supplier details</h3>
+            <div class="d-flex gap-2">
+              <input id="supplierFilter" type="text" class="table-filter" placeholder="Filter suppliers&hellip;">
+              <button class="btn-brass btn-sm" id="addSupplierBtn">+ Add supplier</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Contact person</th><th>Phone</th><th>Email</th><th>Products supplied</th><th></th></tr></thead>
+              <tbody id="suppliersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== CUSTOMERS ===== -->
+      <section id="page-customers" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Customer details</h3>
+            <div class="d-flex gap-2">
+              <input id="customerFilter" type="text" class="table-filter" placeholder="Filter customers&hellip;">
+              <button class="btn-brass btn-sm" id="addCustomerBtn">+ Add customer</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Total spent</th><th>Orders</th><th></th></tr></thead>
+              <tbody id="customersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== INVOICES ===== -->
+      <section id="page-invoices" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Invoices</h3>
+            <input id="invoiceFilter" type="text" class="table-filter" placeholder="Filter invoices&hellip;">
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Invoice</th><th>Customer</th><th>Items</th><th>Payment</th><th>Status</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th><th></th></tr></thead>
+              <tbody id="invoicesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PAYMENTS (manual payment tracking) ===== -->
+      <section id="page-payments" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Outstanding balances &mdash; credit tracking</h3>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Invoice</th><th>Customer</th><th>Phone</th><th>Date</th><th>Total</th><th>Paid</th><th>Balance</th><th></th></tr></thead>
+              <tbody id="outstandingTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel mt-4">
+          <div class="panel-head">
+            <h3>All payments received</h3>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Invoice</th><th>Method</th><th>Amount</th><th>Received by</th><th>Note</th><th></th></tr></thead>
+              <tbody id="paymentsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== EMPLOYEES (tenant admin) ===== -->
+      <section id="page-employees" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Employees &amp; staff access</h3>
+            <button class="btn-brass btn-sm" id="addEmployeeBtn">+ Add employee</button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Username</th><th>Full name</th><th>Email</th><th>Role</th><th>Status</th><th>Last login</th><th></th></tr></thead>
+              <tbody id="employeesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TENANTS (super admin) ===== -->
+      <section id="page-tenants" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Tenant management &mdash; platform control</h3>
+            <button class="btn-brass btn-sm" id="addTenantBtn">+ Create tenant</button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Tenant</th><th>Slug</th><th>Plan</th><th>Status</th><th>Users</th><th>Invoices</th><th>Revenue</th><th>Created</th><th></th></tr></thead>
+              <tbody id="tenantsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== AUDIT LOG ===== -->
+      <section id="page-audit" class="page d-none">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Security audit log</h3>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Time</th><th>Actor</th><th>Role</th><th>Action</th><th>Entity</th><th>Details</th><th>IP</th></tr></thead>
+              <tbody id="auditTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============ MODALS ============ -->
+
+<!-- Product Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content ledger-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="productModalTitle">Add product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="productForm">
+        <div class="modal-body">
+          <input type="hidden" id="productId">
+          <div class="row g-3">
+            <div class="col-6"><label class="field-label">Product name</label><input id="productName" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">SKU</label><input id="productSku" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Category</label><input id="productCategory" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Supplier</label><select id="productSupplier" class="field-input"></select></div>
+            <div class="col-4"><label class="field-label">Cost price (&#8377;)</label><input id="productCost" type="number" min="0" step="0.01" class="field-input" required></div>
+            <div class="col-4"><label class="field-label">Sell price (&#8377;)</label><input id="productPrice" type="number" min="0" step="0.01" class="field-input" required></div>
+            <div class="col-4"><label class="field-label">Opening stock</label><input id="productStock" type="number" min="0" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Reorder level</label><input id="productReorder" type="number" min="0" value="5" class="field-input"></div>
+            <div class="col-6"><label class="field-label">Image URL (optional)</label><input id="productImage" class="field-input" placeholder="https://&hellip;"></div>
+            <div class="col-12"><label class="field-label">Description</label><textarea id="productDescription" class="field-input" rows="2"></textarea></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-brass">Save product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Supplier Modal -->
+<div class="modal fade" id="supplierModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content ledger-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="supplierModalTitle">Add supplier</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="supplierForm">
+        <div class="modal-body">
+          <input type="hidden" id="supplierId">
+          <div class="row g-3">
+            <div class="col-6"><label class="field-label">Supplier / company name</label><input id="supplierName" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Contact person</label><input id="supplierContact" class="field-input"></div>
+            <div class="col-6"><label class="field-label">Phone</label><input id="supplierPhone" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Email</label><input id="supplierEmail" type="email" class="field-input"></div>
+            <div class="col-6"><label class="field-label">GSTIN (optional)</label><input id="supplierGst" class="field-input"></div>
+            <div class="col-12"><label class="field-label">Address</label><textarea id="supplierAddress" class="field-input" rows="2"></textarea></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-brass">Save supplier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Modal -->
+<div class="modal fade" id="customerModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content ledger-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="customerModalTitle">Add customer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="customerForm">
+        <div class="modal-body">
+          <input type="hidden" id="customerId">
+          <div class="row g-3">
+            <div class="col-6"><label class="field-label">Full name</label><input id="customerName" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Phone</label><input id="customerPhone" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Email (optional)</label><input id="customerEmail" type="email" class="field-input"></div>
+            <div class="col-12"><label class="field-label">Address</label><textarea id="customerAddress" class="field-input" rows="2"></textarea></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-brass">Save customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Stock adjust modal -->
+<div class="modal fade" id="stockModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content ledger-modal">
+      <div class="modal-header">
+        <h5 class="modal-title">Adjust stock</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="stockForm">
+        <div class="modal-body">
+          <input type="hidden" id="stockProductId">
+          <p class="mb-3" id="stockProductLabel"></p>
+          <label class="field-label">Change (use &minus; to reduce)</label>
+          <input id="stockChange" type="number" class="field-input" placeholder="e.g. 10 or -5" required>
+          <label class="field-label mt-3">Reason</label>
+          <select id="stockReason" class="field-input">
+            <option>Stock received</option>
+            <option>Stock check correction</option>
+            <option>Damaged / expired</option>
+            <option>Returned by customer</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-brass">Apply</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice preview modal -->
+<div class="modal fade" id="invoiceModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content ledger-modal" id="invoicePreviewContent"></div>
+  </div>
+</div>
+
+<!-- Record payment modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content ledger-modal">
+      <div class="modal-header">
+        <h5 class="modal-title">Record manual payment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="paymentForm">
+        <div class="modal-body">
+          <input type="hidden" id="paymentInvoiceId">
+          <p class="mb-3" id="paymentInvoiceLabel"></p>
+          <label class="field-label">Amount (&#8377;)</label>
+          <input id="paymentAmount" type="number" min="0.01" step="0.01" class="field-input" required>
+          <label class="field-label mt-3">Method</label>
+          <select id="paymentMethod" class="field-input">
+            <option>Cash</option><option>UPI</option><option>Card</option><option>Bank transfer</option><option>Credit / Ledger</option>
+          </select>
+          <label class="field-label mt-3">Note (optional)</label>
+          <input id="paymentNote" class="field-input" placeholder="e.g. partial payment on credit sale">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-brass">Record payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Employee modal -->
+<div class="modal fade" id="employeeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content ledger-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="employeeModalTitle">Add employee</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="employeeForm">
+        <div class="modal-body">
+          <input type="hidden" id="employeeId">
+          <div class="row g-3">
+            <div class="col-6"><label class="field-label">Username</label><input id="employeeUsername" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Full name</label><input id="employeeName" class="field-input"></div>
+            <div class="col-6"><label class="field-label">Email</label><input id="employeeEmail" type="email" class="field-input"></div>
+            <div class="col-6"><label class="field-label">Role</label>
+              <select id="employeeRole" class="field-input"><option value="employee">Employee</option><option value="tenant_admin">Tenant admin</option></select>
+            </div>
+            <div class="col-6"><label class="field-label" id="employeePassLabel">Password</label><input id="employeePassword" type="password" class="field-input" placeholder="min 6 characters"></div>
+            <div class="col-6"><label class="field-label">Active</label>
+              <select id="employeeActive" class="field-input"><option value="true">Active</option><option value="false">Deactivated</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-brass">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Tenant modal -->
+<div class="modal fade" id="tenantModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content ledger-modal">
+      <div class="modal-header">
+        <h5 class="modal-title">Create tenant</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="tenantForm">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-6"><label class="field-label">Shop / business name</label><input id="tenantName" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Plan</label>
+              <select id="tenantPlan" class="field-input"><option value="free">Free</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select>
+            </div>
+            <div class="col-6"><label class="field-label">Admin username</label><input id="tenantAdminUser" class="field-input" required></div>
+            <div class="col-6"><label class="field-label">Admin email</label><input id="tenantAdminEmail" type="email" class="field-input"></div>
+            <div class="col-12"><label class="field-label">Admin password (min 8 chars)</label><input id="tenantAdminPass" type="password" class="field-input" required></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-brass">Create tenant</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap">
+  <div id="appToast" class="app-toast"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

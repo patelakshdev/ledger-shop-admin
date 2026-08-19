@@ -1,0 +1,31 @@
+# Render Blueprint — API service for the Ledger platform
+#
+# NOTE ON DATABASES:
+#   Render free-tier PostgreSQL is internal-only and limited to ONE free
+#   instance per account. This blueprint therefore does NOT create a database.
+#   Provide DATABASE_URL pointing at an existing instance's INTERNAL URL,
+#   e.g. after adding a `ledger_shop` database via the dashboard:
+#     postgresql://USER:PASSWORD@dpg-xxxxx-a/ledger_shop
+#   `npm run db:init` (part of startCommand) auto-creates the `ledger_shop`
+#   database + schema + super admin on first boot if it does not exist.
+
+services:
+  - type: web
+    name: ledger-api
+    runtime: node
+    plan: free
+    region: ohio
+    buildCommand: npm install
+    startCommand: npm run db:init && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false            # set in the Render dashboard (internal URL of your Postgres instance)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+      - key: SUPER_ADMIN_USERNAME
+        value: superadmin
+      - key: SUPER_ADMIN_PASSWORD
+        value: SuperAdmin@123
